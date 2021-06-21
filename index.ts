@@ -50,11 +50,17 @@ const sevenDaysAgo = dayjs().subtract(olderThan, 'days')
 const run = async () => {
   await logger(`Rozpoczęcie usuwania starych kopii zapasowych z bucketu: ${bucket}`)
 
-  const data = await s3.send(new ListObjectsCommand({
-    Bucket: bucket
-  }));
+  let data; 
 
-  const outdatedFiles = data.Contents?.filter(item => {
+  try {
+    data = await s3.send(new ListObjectsCommand({
+      Bucket: bucket
+    }));
+  } catch (e) {
+    await logger('Błąd pobierania danych', true)
+  }
+
+  const outdatedFiles = data?.Contents?.filter(item => {
     const day = dayjs(item.LastModified)
     return day.isBefore(sevenDaysAgo)
   })
@@ -64,7 +70,7 @@ const run = async () => {
     return
   }
 
-  console.log(`Znalezionych plików: ${outdatedFiles?.length}`)
+  await logger(`Znalezionych plików: ${outdatedFiles?.length}`)
 
   outdatedFiles?.forEach(async (item) => {
     try {
