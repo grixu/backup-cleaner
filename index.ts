@@ -56,7 +56,7 @@ const logger = async (msg: string, isError: boolean = false): Promise<void> => {
 
 const bucket = process.env.BUCKET_NAME;
 const olderThan = parseInt(process.env.OLDER_THAN || "14");
-const sevenDaysAgo = dayjs().subtract(olderThan, "days");
+const sevenDaysAgo = dayjs().subtract(olderThan, "d");
 
 const run = async () => {
   await logger(
@@ -71,6 +71,7 @@ const run = async () => {
       })
     );
   } catch (e) {
+    console.log(e);
     await logger("Błąd pobierania danych", true);
   }
 
@@ -86,20 +87,29 @@ const run = async () => {
 
   await logger(`Znalezionych plików: ${outdatedFiles?.length}`);
 
-  outdatedFiles?.forEach(async (item: any) => {
-    try {
-      await s3.send(
-        new DeleteObjectCommand({
-          Bucket: bucket,
-          Key: item.Key,
-        })
-      );
+  const deletedFiles: any = [];
 
-      await logger(`Usunięto plik: ${item.Key}`);
+  outdatedFiles?.forEach(async (item: any) => {
+    const itemToDelete = new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: item.Key,
+    });
+
+    try {
+      await s3.send(itemToDelete);
+      deletedFiles.push(itemToDelete);
     } catch (e) {
       await logger(`Wystąpił błędy podczas usuwania ${item.Key}: ${e}`, true);
     }
   });
+
+  const deleted = deletedFiles.map((file: any) => file.input.Key);
+
+  if (deleted.length < 1) {
+    await logger("Nie ma nic do usunięcia");
+  } else {
+    await logger(`Usunięte pliki: ${deleted.join(", ")}`);
+  }
 };
 
 run();
