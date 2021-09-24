@@ -1,89 +1,105 @@
-import { DeleteObjectCommand, ListObjectsCommand, S3Client } from '@aws-sdk/client-s3';
-import dayjs from 'dayjs';
-import dotenv from 'dotenv'
-import { IncomingWebhook } from '@slack/webhook'
+const {
+  DeleteObjectCommand,
+  ListObjectsCommand,
+  S3Client,
+} = require("@aws-sdk/client-s3");
+const dayjs = require("dayjs");
+const dotenv = require("dotenv");
+const { IncomingWebhook } = require("@slack/webhook");
 
 dotenv.config({
-  path: __dirname + '/.env'
-})
+  path: __dirname + "/.env",
+});
 
-const requiredEnvs = ['BUCKET_KEY', 'BUCKET_SECRET', 'BUCKET_ENDPOINT', 'BUCKET_REGION', 'BUCKET_NAME', 'WEBHOOK']
-requiredEnvs.forEach(item => {
-  if (typeof process.env[item] === 'undefined') {
-    console.error(`Brak ustawionej zmiennej ${item}`)
-    process.exit(1)
+const requiredEnvs = [
+  "BUCKET_KEY",
+  "BUCKET_SECRET",
+  "BUCKET_REGION",
+  "BUCKET_NAME",
+  "WEBHOOK",
+];
+
+requiredEnvs.forEach((item) => {
+  if (typeof process.env[item] === "undefined") {
+    console.error(`Brak ustawionej zmiennej ${item}`);
+    process.exit(1);
   }
-})
+});
 
-const slack = new IncomingWebhook(process.env.WEBHOOK || '')
+const slack = new IncomingWebhook(process.env.WEBHOOK || "");
 
-var s3  = new S3Client({  
+var s3 = new S3Client({
   credentials: {
-    accessKeyId: process.env.BUCKET_KEY || '',
-    secretAccessKey: process.env.BUCKET_SECRET || '',
+    accessKeyId: process.env.BUCKET_KEY || "",
+    secretAccessKey: process.env.BUCKET_SECRET || "",
   },
   endpoint: process.env.BUCKET_ENDPOINT,
-  region: process.env.BUCKET_REGION
+  region: process.env.BUCKET_REGION,
 });
 
 const logger = async (msg: string, isError: boolean = false): Promise<void> => {
   if (isError) {
     await slack.send({
-      icon_emoji: ':red_circle:',
-      text: msg
-    })
-    console.error(msg)
+      icon_emoji: ":red_circle:",
+      text: msg,
+    });
+    console.error(msg);
 
-    return
+    return;
   }
-  
-  await slack.send({
-    text: msg
-  })
-  console.log(msg)
-}
 
-const bucket = process.env.BUCKET_NAME
-const olderThan :number = parseInt(process.env.OLDER_THAN || '7')
-const sevenDaysAgo = dayjs().subtract(olderThan, 'days')
+  await slack.send({
+    text: msg,
+  });
+  console.log(msg);
+};
+
+const bucket = process.env.BUCKET_NAME;
+const olderThan = parseInt(process.env.OLDER_THAN || "14");
+const sevenDaysAgo = dayjs().subtract(olderThan, "days");
 
 const run = async () => {
-  await logger(`Rozpoczęcie usuwania starych kopii zapasowych z bucketu: ${bucket}`)
+  await logger(
+    `Rozpoczęcie usuwania starych kopii zapasowych z bucketu: ${bucket}`
+  );
 
-  let data; 
-
+  let data;
   try {
-    data = await s3.send(new ListObjectsCommand({
-      Bucket: bucket
-    }));
-  } catch (e) {
-    await logger('Błąd pobierania danych', true)
-  }
-
-  const outdatedFiles = data?.Contents?.filter(item => {
-    const day = dayjs(item.LastModified)
-    return day.isBefore(sevenDaysAgo)
-  })
-
-  if (typeof outdatedFiles === 'undefined') {
-    await logger('Nie znaleziono żadnych przedawnionych plików')
-    return
-  }
-
-  await logger(`Znalezionych plików: ${outdatedFiles?.length}`)
-
-  outdatedFiles?.forEach(async (item) => {
-    try {
-      await s3.send(new DeleteObjectCommand({
+    data = await s3.send(
+      new ListObjectsCommand({
         Bucket: bucket,
-        Key: item.Key
-      }))
+      })
+    );
+  } catch (e) {
+    await logger("Błąd pobierania danych", true);
+  }
 
-      await logger(`Usunięto plik: ${item.Key}`)
+  const outdatedFiles = data?.Contents?.filter((item: any) => {
+    const day = dayjs(item.LastModified);
+    return day.isBefore(sevenDaysAgo);
+  });
+
+  if (typeof outdatedFiles === "undefined") {
+    await logger("Nie znaleziono żadnych przedawnionych plików");
+    return;
+  }
+
+  await logger(`Znalezionych plików: ${outdatedFiles?.length}`);
+
+  outdatedFiles?.forEach(async (item: any) => {
+    try {
+      await s3.send(
+        new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: item.Key,
+        })
+      );
+
+      await logger(`Usunięto plik: ${item.Key}`);
     } catch (e) {
-      await logger(`Wystąpił błędy podczas usuwania ${item.Key}: ${e}`, true)
+      await logger(`Wystąpił błędy podczas usuwania ${item.Key}: ${e}`, true);
     }
-  })
-}
+  });
+};
 
-run()
+run();
