@@ -55,8 +55,8 @@ const logger = async (msg: string, isError: boolean = false): Promise<void> => {
 };
 
 const bucket = process.env.BUCKET_NAME;
-const olderThan = parseInt(process.env.OLDER_THAN || "1");
-const sevenDaysAgo = dayjs().subtract(olderThan, "s");
+const olderThan = parseInt(process.env.OLDER_THAN || "14");
+const sevenDaysAgo = dayjs().subtract(olderThan, "d");
 
 const run = async () => {
   await logger(
