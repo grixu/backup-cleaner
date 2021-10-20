@@ -55,8 +55,8 @@ const logger = async (msg: string, isError: boolean = false): Promise<void> => {
 };
 
 const bucket = process.env.BUCKET_NAME;
-const olderThan = parseInt(process.env.OLDER_THAN || "14");
-const sevenDaysAgo = dayjs().subtract(olderThan, "d");
+const olderThan = parseInt(process.env.OLDER_THAN || "1");
+const sevenDaysAgo = dayjs().subtract(olderThan, "s");
 
 const run = async () => {
   await logger(
@@ -96,8 +96,8 @@ const run = async () => {
     });
 
     try {
-      await s3.send(itemToDelete);
       deletedFiles.push(itemToDelete);
+      await s3.send(itemToDelete);
     } catch (e) {
       await logger(`Wystąpił błędy podczas usuwania ${item.Key}: ${e}`, true);
     }
