@@ -1,11 +1,11 @@
-const {
+import {
   DeleteObjectCommand,
   ListObjectsCommand,
   S3Client,
-} = require("@aws-sdk/client-s3");
-const dayjs = require("dayjs");
-const dotenv = require("dotenv");
-const { IncomingWebhook } = require("@slack/webhook");
+} from "@aws-sdk/client-s3";
+import dayjs from "dayjs";
+import dotenv from "dotenv";
+import { IncomingWebhook } from "@slack/webhook";
 
 dotenv.config({
   path: __dirname + "/.env",
