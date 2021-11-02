@@ -7,7 +7,8 @@ dotenv.config({
   path: __dirname + '/.env'
 })
 
-const requiredEnvs = ['BUCKET_KEY', 'BUCKET_SECRET', 'BUCKET_ENDPOINT', 'BUCKET_REGION', 'BUCKET_NAME', 'WEBHOOK']
+const requiredEnvs = ['BUCKET_KEY', 'BUCKET_SECRET',  'BUCKET_REGION', 'BUCKET_NAME', 'WEBHOOK']
+
 requiredEnvs.forEach(item => {
   if (typeof process.env[item] === 'undefined') {
     console.error(`Brak ustawionej zmiennej ${item}`)
@@ -17,7 +18,7 @@ requiredEnvs.forEach(item => {
 
 const slack = new IncomingWebhook(process.env.WEBHOOK || '')
 
-var s3  = new S3Client({  
+var s3  = new S3Client({
   credentials: {
     accessKeyId: process.env.BUCKET_KEY || '',
     secretAccessKey: process.env.BUCKET_SECRET || '',
@@ -26,7 +27,7 @@ var s3  = new S3Client({
   region: process.env.BUCKET_REGION
 });
 
-const logger = async (msg: string, isError: boolean = false): Promise<void> => {
+const logger = async (msg: string, isError: boolean = false): Promise<void> =>  {
   if (isError) {
     await slack.send({
       icon_emoji: ':red_circle:',
@@ -36,7 +37,7 @@ const logger = async (msg: string, isError: boolean = false): Promise<void> => {
 
     return
   }
-  
+
   await slack.send({
     text: msg
   })
@@ -44,23 +45,23 @@ const logger = async (msg: string, isError: boolean = false): Promise<void> => {
 }
 
 const bucket = process.env.BUCKET_NAME
-const olderThan :number = parseInt(process.env.OLDER_THAN || '7')
-const sevenDaysAgo = dayjs().subtract(olderThan, 'days')
+const olderThan  = parseInt(process.env.OLDER_THAN || '14')
+const sevenDaysAgo = dayjs().subtract(olderThan,  'days')
 
 const run = async () => {
   await logger(`Rozpoczęcie usuwania starych kopii zapasowych z bucketu: ${bucket}`)
 
-  let data; 
-
+  let data;
   try {
     data = await s3.send(new ListObjectsCommand({
       Bucket: bucket
     }));
   } catch (e) {
+
     await logger('Błąd pobierania danych', true)
   }
 
-  const outdatedFiles = data?.Contents?.filter(item => {
+  const outdatedFiles = data?.Contents?.filter((item: any) => {
     const day = dayjs(item.LastModified)
     return day.isBefore(sevenDaysAgo)
   })
@@ -70,7 +71,7 @@ const run = async () => {
     return
   }
 
-  await logger(`Znalezionych plików: ${outdatedFiles?.length}`)
+  await logger(outdatedFiles?.length === 0 ? `Nie znaleziono żadnych plików starszych niż ${process.env.OLDER_THAN} dni` : `Znalezionych plików: ${outdatedFiles?.length}`)
 
   outdatedFiles?.forEach(async (item) => {
     try {
