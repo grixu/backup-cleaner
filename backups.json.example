@@ -1,0 +1,10 @@
+{
+    "backups": [
+        {
+            "name": "Test",
+            "path": "/Users/mateusz",
+            "cmd": "mysqldump -u root -ppoiu4014 cleat > test.sql",
+            "file": "test.sql"
+        }
+    ]
+}
