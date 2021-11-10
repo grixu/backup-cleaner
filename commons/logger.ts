@@ -1,6 +1,6 @@
 import { IncomingWebhook } from '@slack/webhook'
 
-const slack = new IncomingWebhook(process.env.WEBHOOK || '')
+const slack = new IncomingWebhook(process.env.SLACK_WEBHOOK || '')
 
 export default async (msg: string, isError: boolean = false): Promise<void> => {
   if (isError) {
